@@ -1,0 +1,27 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      docker: 18
+
+  # ECRログイン
+  pre_build:
+    commands:
+    - $(aws ecr get-login --region $AWS_DEFAULT_REGION --no-include-email)
+    - REPO=$(aws ecr describe-repositories -- repository-names example --output test --query "repositories[0].repositoryUri")
+    - IMAGE=$REPO:latest
+
+  # Dockerイメージ build, push
+  build:
+    commands:
+    - docker build -t $IMAGE .
+    - docker push $IMAGE
+
+  # file作成
+  post_build:
+    commands:
+    - printf '[{"name": "example", "imageUri": "$s"}]' $IMAGE > imagedefinitions.json
+
+artifacts:
+  files: imagedefinitions.json
